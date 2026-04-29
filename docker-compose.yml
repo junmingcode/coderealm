@@ -28,7 +28,7 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
-      APP_NAME: CJM Blog
+      APP_NAME: 码境 CodeRealm
       APP_DESCRIPTION: A personal blog built with FastAPI and React
       APP_VERSION: 1.0.0
       MAX_UPLOAD_SIZE: 5242880

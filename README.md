@@ -1,4 +1,4 @@
-# CJM Blog
+# 码境 CodeRealm
 
 个人博客系统，基于 Python FastAPI + React + MySQL 构建。
 
@@ -32,7 +32,7 @@
 ### Docker 部署
 
 ```bash
-cd cjm-blog
+cd coderealm
 docker-compose up -d
 ```
 
@@ -60,7 +60,7 @@ npm run dev
 ## 项目结构
 
 ```
-cjm-blog/
+coderealm/
 ├── backend/          # FastAPI 后端
 ├── frontend/         # React 前端
 ├── nginx/            # Nginx 配置

@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     admin_username: str = "admin"
     admin_password: str = "admin123"
-    app_name: str = "CJM Blog"
+    app_name: str = "码境 CodeRealm"
     app_description: str = "A personal blog built with FastAPI and React"
     app_version: str = "1.0.0"
     max_upload_size: int = 5242880

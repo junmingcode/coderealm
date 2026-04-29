@@ -47,7 +47,7 @@ function AdminLayout() {
             to="/"
             style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text)' }}
           >
-            CJM Blog
+            码境
           </Link>
           <ThemeToggle />
         </div>

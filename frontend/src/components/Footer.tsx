@@ -22,7 +22,7 @@ function Footer() {
         }}
       >
         <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-          © {new Date().getFullYear()} CJM Blog. All rights reserved.
+          © {new Date().getFullYear()} 码境 CodeRealm. All rights reserved.
         </div>
         <div style={{ display: 'flex', gap: '1.5rem' }}>
           <Link to="/" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>

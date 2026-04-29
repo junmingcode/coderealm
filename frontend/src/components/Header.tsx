@@ -45,7 +45,7 @@ function Header() {
         }}
       >
         <Link to="/" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text)', textDecoration: 'none' }}>
-          CJM Blog
+          码境
         </Link>
 
         <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem' }} className="desktop-nav">
