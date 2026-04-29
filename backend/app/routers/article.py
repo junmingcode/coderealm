@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -19,9 +21,19 @@ from app.services.article_service import (
 router = APIRouter()
 
 
+def calculate_reading_time(content: str) -> int:
+    if not content:
+        return 1
+    chinese_chars = len(re.findall(r'[一-鿿]', content))
+    english_words = len(re.findall(r'[a-zA-Z]+', content))
+    total = chinese_chars + english_words
+    return max(1, round(total / 400))
+
+
 def _enrich_article(article: Article, db: Session):
     article.like_count = db.query(func.count(Like.id)).filter(Like.article_id == article.id).scalar()
     article.comment_count = db.query(func.count(Comment.id)).filter(Comment.article_id == article.id).scalar()
+    article.reading_time = calculate_reading_time(article.content)
     return article
 
 

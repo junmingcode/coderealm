@@ -35,6 +35,7 @@ class ArticleResponse(BaseModel):
     view_count: int
     like_count: int
     comment_count: int
+    reading_time: int
     created_at: datetime
     updated_at: Optional[datetime]
     published_at: Optional[datetime]
@@ -55,6 +56,7 @@ class ArticleListResponse(BaseModel):
     view_count: int
     like_count: int
     comment_count: int
+    reading_time: int
     created_at: datetime
     published_at: Optional[datetime]
     category: Optional[CategoryResponse]

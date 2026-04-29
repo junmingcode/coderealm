@@ -34,6 +34,7 @@ export interface Article {
   view_count: number;
   like_count: number;
   comment_count: number;
+  reading_time: number;
   created_at: string;
   updated_at?: string;
   published_at?: string;

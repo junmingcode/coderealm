@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import MDEditor from '@uiw/react-md-editor';
 import { articleApi } from '../../api/article';
 import { api } from '../../api';
-import { uploadApi } from '../../api/upload';
 import type { Category, Tag } from '../../types';
 
 function ArticleEditor() {
@@ -58,16 +57,6 @@ function ArticleEditor() {
     };
     fetchArticle();
   }, [isEdit, id]);
-
-  const handleImageUpload = async (file: File) => {
-    try {
-      const res = await uploadApi.image(file);
-      return res.data.url;
-    } catch (err) {
-      console.error('Upload failed:', err);
-      return '';
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
