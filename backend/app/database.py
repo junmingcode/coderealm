@@ -4,10 +4,13 @@ from app.config import get_settings
 
 settings = get_settings()
 
+is_sqlite = "sqlite" in settings.database_url
+
 engine = create_engine(
     settings.database_url,
-    pool_pre_ping=True,
-    pool_recycle=3600,
+    connect_args={"check_same_thread": False} if is_sqlite else {},
+    pool_pre_ping=not is_sqlite,
+    pool_recycle=3600 if not is_sqlite else -1,
     echo=False,
 )
 

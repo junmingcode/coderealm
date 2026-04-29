@@ -45,3 +45,10 @@ uploads/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Temporary files
+*.stackdump
+zhiqiu_articles.json
+
+# Package lock (optional)
+package-lock.json

@@ -1,13 +1,20 @@
+import os
+from typing import List
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 
-from typing import List
+ENV = os.getenv("APP_ENV", "development")
+
+ENV_FILES = {
+    "development": ".env.development",
+    "production": ".env.production",
+}
 
 
 class Settings(BaseSettings):
-    database_url: str = "mysql+pymysql://blog_user:blog_password@localhost:3306/blog_db"
-    secret_key: str = "your-super-secret-key-change-this-in-production"
+    database_url: str = "sqlite:///./app.db"
+    secret_key: str = "dev-secret-key"
     access_token_expire_minutes: int = 60
     admin_username: str = "admin"
     admin_password: str = "admin123"
@@ -23,7 +30,7 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",")]
 
     class Config:
-        env_file = ".env"
+        env_file = ENV_FILES.get(ENV, ".env")
         env_file_encoding = "utf-8"
         extra = "ignore"
 
