@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { articleApi } from '../api/article';
+import { tagApi } from '../api/tag';
 import ArticleCard from '../components/ArticleCard';
 import Pagination from '../components/Pagination';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
@@ -10,10 +11,23 @@ import type { Article, PaginatedResponse } from '../types';
 function TagPage() {
   const { slug } = useParams<{ slug: string }>();
   const [data, setData] = useState<PaginatedResponse<Article> | null>(null);
+  const [tagName, setTagName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  useDocumentTitle(slug ? `标签: ${slug}` : '标签');
+  useEffect(() => {
+    const fetchTagName = async () => {
+      try {
+        const res = await tagApi.getBySlug(slug || '');
+        setTagName(res.data.name);
+      } catch (err) {
+        console.error('Failed to fetch tag:', err);
+      }
+    };
+    if (slug) fetchTagName();
+  }, [slug]);
+
+  useDocumentTitle(tagName ? `标签: ${tagName}` : '标签');
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -43,7 +57,7 @@ function TagPage() {
   return (
     <div style={{ padding: '2rem 0' }}>
       <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '2rem', color: 'var(--color-text)' }}>
-        标签: #{slug}
+        标签: #{tagName || slug}
       </h1>
 
       {data?.items.length === 0 ? (

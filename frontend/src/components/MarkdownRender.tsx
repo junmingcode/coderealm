@@ -9,24 +9,43 @@ interface MarkdownRenderProps {
   content: string;
 }
 
-function MarkdownRender({ content }: MarkdownRenderProps) {
-  const headingIds = useMemo(() => {
-    const ids: string[] = [];
+function isHtmlContent(content: string): boolean {
+  const trimmed = content.trim();
+  return /^<(p|div|span|h[1-6]|pre|code|ul|ol|li|table|tr|td|th|img|a|br|blockquote|section|article)/i.test(trimmed);
+}
+
+function extractHeadingsFromContent(content: string): string[] {
+  const ids: string[] = [];
+  if (isHtmlContent(content)) {
+    const matches = content.match(/<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/gi);
+    if (matches) {
+      for (const match of matches) {
+        if (/^<h[1-3]/i.test(match)) {
+          ids.push(`heading-${ids.length}`);
+        }
+      }
+    }
+  } else {
     const lines = content.split('\n');
     for (const line of lines) {
       if (/^#{1,3}\s+/.test(line)) {
         ids.push(`heading-${ids.length}`);
       }
     }
-    return ids;
-  }, [content]);
+  }
+  return ids;
+}
+
+function MarkdownRender({ content }: MarkdownRenderProps) {
+  const headingIds = useMemo(() => extractHeadingsFromContent(content), [content]);
+  const isHtml = useMemo(() => isHtmlContent(content), [content]);
 
   let headingIndex = 0;
 
   return (
     <div className="markdown-body">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={isHtml ? [] : [remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeHighlight]}
         components={{
           img: ({ src, alt }) => (

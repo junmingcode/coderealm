@@ -1,19 +1,34 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { articleApi } from '../api/article';
+import { categoryApi } from '../api/category';
 import ArticleCard from '../components/ArticleCard';
 import Pagination from '../components/Pagination';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { SkeletonList } from '../components/Skeleton';
-import type { Article, PaginatedResponse } from '../types';
+import type { Article, PaginatedResponse, Category } from '../types';
 
 function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
   const [data, setData] = useState<PaginatedResponse<Article> | null>(null);
+  const [categoryName, setCategoryName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  useDocumentTitle(slug ? `分类: ${slug}` : '分类');
+  useEffect(() => {
+    const categoryNameRef = async () => {
+      try {
+        const res = await categoryApi.getList();
+        const cat = res.data.find((c: Category) => c.slug === slug);
+        setCategoryName(cat?.name || slug || '');
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+      }
+    };
+    categoryNameRef();
+  }, [slug]);
+
+  useDocumentTitle(categoryName ? `分类: ${categoryName}` : '分类');
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -43,7 +58,7 @@ function CategoryPage() {
   return (
     <div style={{ padding: '2rem 0' }}>
       <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '2rem', color: 'var(--color-text)' }}>
-        分类: {slug}
+        分类: {categoryName || slug}
       </h1>
 
       {data?.items.length === 0 ? (

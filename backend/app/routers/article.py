@@ -62,6 +62,87 @@ def list_articles(
     }
 
 
+@router.get("/{slug}/neighbors")
+def get_article_neighbors(slug: str, db: Session = Depends(get_db)):
+    article = get_article_by_slug(db, slug)
+    if not article or article.status != "published":
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    prev_article = (
+        db.query(Article)
+        .filter(Article.status == "published", Article.published_at < article.published_at)
+        .order_by(Article.published_at.desc())
+        .first()
+    )
+
+    next_article = (
+        db.query(Article)
+        .filter(Article.status == "published", Article.published_at > article.published_at)
+        .order_by(Article.published_at.asc())
+        .first()
+    )
+
+    return {
+        "previous": {
+            "slug": prev_article.slug,
+            "title": prev_article.title,
+        } if prev_article else None,
+        "next": {
+            "slug": next_article.slug,
+            "title": next_article.title,
+        } if next_article else None,
+    }
+
+
+@router.get("/search/query")
+def search_articles(
+    q: str = Query(..., min_length=1),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Article).filter(
+        Article.status == "published",
+        (Article.title.contains(q)) | (Article.content.contains(q)) | (Article.summary.contains(q))
+    )
+    total = query.count()
+    articles = (
+        query.order_by(Article.published_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    articles = _enrich_articles(articles, db)
+    total_pages = (total + page_size - 1) // page_size
+    return {
+        "items": articles,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
+
+
+@router.get("/popular/list")
+def get_popular_articles(limit: int = Query(5, ge=1, le=20), db: Session = Depends(get_db)):
+    articles = (
+        db.query(Article)
+        .filter(Article.status == "published")
+        .order_by(Article.view_count.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": a.id,
+            "slug": a.slug,
+            "title": a.title,
+            "view_count": a.view_count,
+        }
+        for a in articles
+    ]
+
+
 @router.get("/{slug}", response_model=ArticleResponse)
 def get_article(slug: str, request: Request, db: Session = Depends(get_db)):
     article = get_article_by_slug(db, slug)
@@ -105,84 +186,3 @@ def delete_existing_article(
     if not delete_article(db, article_id):
         raise HTTPException(status_code=404, detail="Article not found")
     return {"message": "Article deleted"}
-
-
-@router.get("/search/query")
-def search_articles(
-    q: str = Query(..., min_length=1),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
-    db: Session = Depends(get_db),
-):
-    query = db.query(Article).filter(
-        Article.status == "published",
-        (Article.title.contains(q)) | (Article.content.contains(q)) | (Article.summary.contains(q))
-    )
-    total = query.count()
-    articles = (
-        query.order_by(Article.published_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
-    )
-    articles = _enrich_articles(articles, db)
-    total_pages = (total + page_size - 1) // page_size
-    return {
-        "items": articles,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "total_pages": total_pages,
-    }
-
-
-@router.get("/{slug}/neighbors")
-def get_article_neighbors(slug: str, db: Session = Depends(get_db)):
-    article = get_article_by_slug(db, slug)
-    if not article or article.status != "published":
-        raise HTTPException(status_code=404, detail="Article not found")
-
-    prev_article = (
-        db.query(Article)
-        .filter(Article.status == "published", Article.published_at < article.published_at)
-        .order_by(Article.published_at.desc())
-        .first()
-    )
-
-    next_article = (
-        db.query(Article)
-        .filter(Article.status == "published", Article.published_at > article.published_at)
-        .order_by(Article.published_at.asc())
-        .first()
-    )
-
-    return {
-        "previous": {
-            "slug": prev_article.slug,
-            "title": prev_article.title,
-        } if prev_article else None,
-        "next": {
-            "slug": next_article.slug,
-            "title": next_article.title,
-        } if next_article else None,
-    }
-
-
-@router.get("/popular/list")
-def get_popular_articles(limit: int = Query(5, ge=1, le=20), db: Session = Depends(get_db)):
-    articles = (
-        db.query(Article)
-        .filter(Article.status == "published")
-        .order_by(Article.view_count.desc())
-        .limit(limit)
-        .all()
-    )
-    return [
-        {
-            "id": a.id,
-            "slug": a.slug,
-            "title": a.title,
-            "view_count": a.view_count,
-        }
-        for a in articles
-    ]

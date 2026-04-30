@@ -13,7 +13,7 @@ ENV_FILES = {
 
 
 class Settings(BaseSettings):
-    database_url: str = "sqlite:///./app.db"
+    database_url: str = "mysql+pymysql://root:123456@127.0.0.1:3306/coderealm?charset=utf8mb4"
     secret_key: str = "dev-secret-key"
     access_token_expire_minutes: int = 60
     admin_username: str = "admin"
@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     max_upload_size: int = 5242880
     upload_dir: str = "uploads"
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    cors_origins: str = "http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost:80"
 
     @property
     def cors_origins_list(self) -> List[str]:
