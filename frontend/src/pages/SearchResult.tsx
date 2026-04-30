@@ -4,6 +4,7 @@ import { articleApi } from '../api/article';
 import ArticleCard from '../components/ArticleCard';
 import Pagination from '../components/Pagination';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { SkeletonList } from '../components/Skeleton';
 import type { Article, PaginatedResponse } from '../types';
 
 function SearchResult() {
@@ -36,8 +37,9 @@ function SearchResult() {
 
   if (loading) {
     return (
-      <div style={{ padding: '4rem 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-        搜索中...
+      <div style={{ padding: '2rem 0' }}>
+        <div style={{ width: '280px', height: '2rem', backgroundColor: 'var(--color-border)', borderRadius: 'var(--radius-sm)', marginBottom: '2rem', animation: 'skeleton-pulse 1.5s ease-in-out infinite' }} />
+        <SkeletonList count={5} />
       </div>
     );
   }
@@ -61,7 +63,7 @@ function SearchResult() {
           <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
             共找到 {data?.total} 篇文章
           </p>
-          <div style={{ display: 'grid', gap: '1.5rem' }}>
+          <div className="card-stagger" style={{ display: 'grid', gap: '1.5rem' }}>
             {data?.items.map((article) => (
               <ArticleCard key={article.id} article={article} />
             ))}

@@ -5,7 +5,9 @@ import { api } from '../api';
 import MarkdownRender from '../components/MarkdownRender';
 import CommentList from '../components/CommentList';
 import TableOfContents from '../components/TableOfContents';
+import { SkeletonArticle } from '../components/Skeleton';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { useMetaDescription } from '../utils/useMetaDescription';
 import type { Article, Comment } from '../types';
 
 function ArticleDetail() {
@@ -14,17 +16,25 @@ function ArticleDetail() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
+  const [neighbors, setNeighbors] = useState<{ previous: { slug: string; title: string } | null; next: { slug: string; title: string } | null }>({ previous: null, next: null });
 
   useDocumentTitle(article?.title || '文章详情');
+  useMetaDescription(
+    article?.summary || article?.content?.slice(0, 200).replace(/[#*`\n]/g, '') || ''
+  );
 
   useEffect(() => {
     const fetchArticle = async () => {
       if (!slug) return;
       setLoading(true);
       try {
-        const res = await articleApi.getBySlug(slug);
-        setArticle(res.data);
-        fetchComments(res.data.id);
+        const [articleRes, neighborsRes] = await Promise.all([
+          articleApi.getBySlug(slug),
+          api.get(`/articles/${slug}/neighbors`),
+        ]);
+        setArticle(articleRes.data);
+        setNeighbors(neighborsRes.data);
+        fetchComments(articleRes.data.id);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
         console.error('Failed to fetch article:', err);
@@ -65,22 +75,7 @@ function ArticleDetail() {
   };
 
   if (loading) {
-    return (
-      <div style={{ padding: '4rem 0', textAlign: 'center' }}>
-        <div
-          style={{
-            width: '32px',
-            height: '32px',
-            border: '2px solid var(--color-border)',
-            borderTopColor: 'var(--color-primary)',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
-            margin: '0 auto',
-          }}
-        />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+    return <SkeletonArticle />;
   }
 
   if (!article) {
@@ -291,6 +286,120 @@ function ArticleDetail() {
               </svg>
               分享
             </button>
+          </div>
+
+          {/* Author Card */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '1rem',
+              padding: '1.5rem',
+              borderRadius: 'var(--radius-lg)',
+              backgroundColor: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              marginBottom: '2.5rem',
+            }}
+          >
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--color-primary-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-primary)',
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+              JM
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--color-text)', marginBottom: '0.25rem' }}>JM</div>
+              <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                热爱技术的开发者，专注于 Web 开发领域。在这个博客中分享关于前端、后端、数据库以及各种技术工具的文章。
+              </p>
+            </div>
+          </div>
+
+          {/* Neighbor Navigation */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '1rem',
+              marginBottom: '2.5rem',
+            }}
+          >
+            <div>
+              {neighbors.previous && (
+                <Link
+                  to={`/article/${neighbors.previous.slug}`}
+                  style={{
+                    display: 'block',
+                    padding: '1.25rem',
+                    borderRadius: 'var(--radius-lg)',
+                    backgroundColor: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    transition: 'all var(--transition-fast)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-primary-light)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-border)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="19" y1="12" x2="5" y2="12" />
+                      <polyline points="12 19 5 12 12 5" />
+                    </svg>
+                    上一篇
+                  </div>
+                  <div style={{ fontWeight: 600, color: 'var(--color-text)', fontSize: '0.9375rem', lineHeight: 1.4 }}>{neighbors.previous.title}</div>
+                </Link>
+              )}
+            </div>
+            <div>
+              {neighbors.next && (
+                <Link
+                  to={`/article/${neighbors.next.slug}`}
+                  style={{
+                    display: 'block',
+                    padding: '1.25rem',
+                    borderRadius: 'var(--radius-lg)',
+                    backgroundColor: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    textAlign: 'right',
+                    transition: 'all var(--transition-fast)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-primary-light)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-border)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'flex-end' }}>
+                    下一篇
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </div>
+                  <div style={{ fontWeight: 600, color: 'var(--color-text)', fontSize: '0.9375rem', lineHeight: 1.4 }}>{neighbors.next.title}</div>
+                </Link>
+              )}
+            </div>
           </div>
 
           <CommentList

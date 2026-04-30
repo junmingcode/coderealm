@@ -4,6 +4,7 @@ import { articleApi } from '../api/article';
 import ArticleCard from '../components/ArticleCard';
 import Pagination from '../components/Pagination';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { SkeletonList } from '../components/Skeleton';
 import type { Article, PaginatedResponse } from '../types';
 
 function CategoryPage() {
@@ -32,8 +33,9 @@ function CategoryPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: '4rem 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-        加载中...
+      <div style={{ padding: '2rem 0' }}>
+        <div style={{ width: '200px', height: '2rem', backgroundColor: 'var(--color-border)', borderRadius: 'var(--radius-sm)', marginBottom: '2rem', animation: 'skeleton-pulse 1.5s ease-in-out infinite' }} />
+        <SkeletonList count={5} />
       </div>
     );
   }
@@ -50,7 +52,7 @@ function CategoryPage() {
         </div>
       ) : (
         <>
-          <div style={{ display: 'grid', gap: '1.5rem' }}>
+          <div className="card-stagger" style={{ display: 'grid', gap: '1.5rem' }}>
             {data?.items.map((article) => (
               <ArticleCard key={article.id} article={article} />
             ))}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api';
+import { SkeletonDashboard } from '../../components/Skeleton';
 import type { StatsOverview } from '../../types';
 
 function Dashboard() {
@@ -30,11 +31,7 @@ function Dashboard() {
   ];
 
   if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--color-text-muted)' }}>
-        加载中...
-      </div>
-    );
+    return <SkeletonDashboard />;
   }
 
   return (

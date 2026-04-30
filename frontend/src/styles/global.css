@@ -212,6 +212,55 @@ input, textarea {
   color: var(--color-text);
 }
 
+/* Skeleton pulse animation */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Page transition fade-in */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fade-in-up 0.4s ease-out;
+}
+
+/* Staggered card animation */
+@keyframes card-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-stagger > * {
+  animation: card-fade-in 0.5s ease-out both;
+}
+
+.card-stagger > *:nth-child(1) { animation-delay: 0.04s; }
+.card-stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.card-stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.card-stagger > *:nth-child(4) { animation-delay: 0.16s; }
+.card-stagger > *:nth-child(5) { animation-delay: 0.20s; }
+.card-stagger > *:nth-child(6) { animation-delay: 0.24s; }
+.card-stagger > *:nth-child(7) { animation-delay: 0.28s; }
+.card-stagger > *:nth-child(8) { animation-delay: 0.32s; }
+.card-stagger > *:nth-child(9) { animation-delay: 0.36s; }
+.card-stagger > *:nth-child(10) { animation-delay: 0.40s; }
+
 /* Admin layout responsive */
 @media (max-width: 768px) {
   :root {

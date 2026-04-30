@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { articleApi } from '../../api/article';
+import { SkeletonTable } from '../../components/Skeleton';
 import type { Article, PaginatedResponse } from '../../types';
 
 function ArticleList() {
@@ -65,9 +66,7 @@ function ArticleList() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--color-text-muted)' }}>
-          加载中...
-        </div>
+        <SkeletonTable />
       ) : (
         <>
           <div
@@ -76,9 +75,10 @@ function ArticleList() {
               border: '1px solid var(--color-border)',
               overflow: 'hidden',
               backgroundColor: 'var(--color-surface)',
+              overflowX: 'auto',
             }}
           >
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg)' }}>
                   <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>标题</th>

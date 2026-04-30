@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -7,6 +7,7 @@ function AdminLayout() {
   const { isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -23,7 +24,23 @@ function AdminLayout() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="admin-overlay"
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 199,
+            display: 'none',
+          }}
+        />
+      )}
+
       <aside
+        className={`admin-sidebar${sidebarOpen ? ' open' : ''}`}
         style={{
           width: '240px',
           backgroundColor: 'var(--color-surface)',
@@ -32,6 +49,8 @@ function AdminLayout() {
           flexDirection: 'column',
           position: 'fixed',
           height: '100vh',
+          zIndex: 200,
+          transition: 'transform 0.3s ease',
         }}
       >
         <div
@@ -57,6 +76,7 @@ function AdminLayout() {
             <Link
               key={item.path}
               to={item.path}
+              onClick={() => setSidebarOpen(false)}
               style={{
                 display: 'block',
                 padding: '0.875rem 1.5rem',
@@ -93,15 +113,67 @@ function AdminLayout() {
       </aside>
 
       <main
+        className="admin-main"
         style={{
           marginLeft: '240px',
           flex: 1,
           padding: '2rem',
           backgroundColor: 'var(--color-bg)',
+          minWidth: 0,
         }}
       >
+        {/* Mobile header */}
+        <div
+          className="admin-mobile-header"
+          style={{
+            display: 'none',
+            alignItems: 'center',
+            gap: '1rem',
+            marginBottom: '1.5rem',
+          }}
+        >
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              padding: '0.5rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-border)',
+              backgroundColor: 'var(--color-surface)',
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>管理后台</span>
+        </div>
         <Outlet />
       </main>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-sidebar {
+            transform: translateX(-100%);
+          }
+          .admin-sidebar.open {
+            transform: translateX(0);
+          }
+          .admin-main {
+            margin-left: 0 !important;
+            padding: 1rem !important;
+          }
+          .admin-mobile-header {
+            display: flex !important;
+          }
+          .admin-overlay {
+            display: block !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

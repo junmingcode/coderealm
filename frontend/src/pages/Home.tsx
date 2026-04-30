@@ -5,6 +5,7 @@ import { categoryApi } from '../api/category';
 import ArticleCard from '../components/ArticleCard';
 import Pagination from '../components/Pagination';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { SkeletonList } from '../components/Skeleton';
 import type { Article, Category, PaginatedResponse } from '../types';
 
 function Home() {
@@ -35,19 +36,19 @@ function Home() {
 
   if (loading) {
     return (
-      <div style={{ padding: '4rem 0', textAlign: 'center' }}>
-        <div
-          style={{
-            width: '32px',
-            height: '32px',
-            border: '2px solid var(--color-border)',
-            borderTopColor: 'var(--color-primary)',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
-            margin: '0 auto',
-          }}
-        />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ padding: '2rem 0' }}>
+        <div style={{ textAlign: 'center', padding: '4rem 0 3rem' }}>
+          <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+            <div style={{ width: '60%', height: '3rem', backgroundColor: 'var(--color-border)', borderRadius: 'var(--radius-sm)', margin: '0 auto 1rem', animation: 'skeleton-pulse 1.5s ease-in-out infinite' }} />
+            <div style={{ width: '80%', height: '1.125rem', backgroundColor: 'var(--color-border)', borderRadius: 'var(--radius-sm)', margin: '0 auto 2rem', animation: 'skeleton-pulse 1.5s ease-in-out infinite' }} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem' }}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} style={{ width: '80px', height: '2rem', backgroundColor: 'var(--color-border)', borderRadius: 'var(--radius-md)', animation: 'skeleton-pulse 1.5s ease-in-out infinite' }} />
+              ))}
+            </div>
+          </div>
+        </div>
+        <SkeletonList count={5} />
       </div>
     );
   }
@@ -180,7 +181,7 @@ function Home() {
           </div>
         ) : (
           <>
-            <div style={{ display: 'grid', gap: '1.5rem' }}>
+            <div className="card-stagger" style={{ display: 'grid', gap: '1.5rem' }}>
               {data?.items.map((article) => (
                 <ArticleCard key={article.id} article={article} />
               ))}
