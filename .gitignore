@@ -53,3 +53,14 @@ backend/migrate_zhiqiu.py
 
 # Package lock (optional)
 package-lock.json
+
+# Runtime logs & PIDs
+*.log
+*.pid
+
+# Claude Code local settings
+.claude/
+
+# Temporary test files
+test-*.mjs
+test-content.txt
