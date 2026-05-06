@@ -4,9 +4,40 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
 import 'highlight.js/styles/github-dark.css';
 import { useMemo } from 'react';
+import { visit } from 'unist-util-visit';
 
 interface MarkdownRenderProps {
   content: string;
+}
+
+function rehypeSanitizeColors() {
+  return (tree: any) => {
+    visit(tree, 'element', (node: any) => {
+      if (!node.properties) return;
+      delete node.properties.color;
+      const style = node.properties.style;
+      if (typeof style === 'string') {
+        const cleaned = style
+          .split(';')
+          .filter((s: string) => {
+            const prop = s.split(':')[0].trim().toLowerCase();
+            return prop !== 'color' && prop !== 'background-color';
+          })
+          .join(';');
+        if (cleaned.trim()) {
+          node.properties.style = cleaned;
+        } else {
+          delete node.properties.style;
+        }
+      } else if (typeof style === 'object' && style !== null) {
+        delete style.color;
+        delete style.backgroundColor;
+        if (Object.keys(style).length === 0) {
+          delete node.properties.style;
+        }
+      }
+    });
+  };
 }
 
 function isHtmlContent(content: string): boolean {
@@ -46,7 +77,7 @@ function MarkdownRender({ content }: MarkdownRenderProps) {
     <div className="markdown-body">
       <ReactMarkdown
         remarkPlugins={isHtml ? [] : [remarkGfm]}
-        rehypePlugins={[rehypeRaw, rehypeHighlight]}
+        rehypePlugins={[rehypeRaw, rehypeSanitizeColors, rehypeHighlight]}
         components={{
           img: ({ src, alt }) => (
             <img
