@@ -142,7 +142,7 @@ input, textarea {
   background: none;
   padding: 0;
   border: none;
-  color: #e2e8f0;
+  color: inherit;
   font-size: 0.875rem;
   line-height: 1.7;
 }

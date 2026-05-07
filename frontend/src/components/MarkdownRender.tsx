@@ -69,10 +69,28 @@ function extractHeadingsFromContent(content: string): string[] {
   return ids;
 }
 
+function normalizePrismCodeBlocks(html: string): string {
+  // Z-Blog Prism.js format: <pre class="prism-highlight prism-language-xxx">...</pre>
+  // Convert to: <pre><code class="language-xxx">...</code></pre>
+  return html
+    .replace(
+      /<pre\b[^>]*?\bclass="[^"]*?\bprism-language-([^"\s]+)[^"]*"[^>]*>([\s\S]*?)<\/pre>/gi,
+      '<pre><code class="language-$1">$2</code></pre>'
+    )
+    .replace(
+      /<pre\b[^>]*?\bclass="[^"]*?\bprism-highlight[^"]*"[^>]*>(?!\s*<code\b)([\s\S]*?)<\/pre>/gi,
+      '<pre><code>$1</code></pre>'
+    );
+}
+
 function MarkdownRender({ content }: MarkdownRenderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const headingIds = useMemo(() => extractHeadingsFromContent(content), [content]);
   const isHtml = useMemo(() => isHtmlContent(content), [content]);
+  const normalizedContent = useMemo(
+    () => (isHtml ? normalizePrismCodeBlocks(content) : content),
+    [content, isHtml]
+  );
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -98,7 +116,7 @@ function MarkdownRender({ content }: MarkdownRenderProps) {
           ),
         }}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );
