@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -36,8 +37,8 @@ def create_admin_user():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    create_admin_user()
+    await asyncio.to_thread(Base.metadata.create_all, bind=engine)
+    await asyncio.to_thread(create_admin_user)
     yield
 
 

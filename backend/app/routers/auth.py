@@ -47,7 +47,12 @@ def login(
 
 @router.post("/logout")
 def logout(response: Response):
-    response.delete_cookie(key="access_token")
+    response.delete_cookie(
+        key="access_token",
+        secure=settings.cookie_secure,
+        httponly=True,
+        samesite="lax",
+    )
     return {"detail": "Logged out"}
 
 

@@ -78,10 +78,10 @@ def update_article(db: Session, article_id: int, article_update: ArticleUpdate) 
 
     update_data = article_update.model_dump(exclude_unset=True)
     if "title" in update_data and update_data["title"] != db_article.title:
-        new_slug = slugify(update_data["title"])
-        existing = db.query(Article).filter(Article.slug == new_slug, Article.id != article_id).first()
-        if existing:
-            new_slug = f"{new_slug}-{article_id}"
+        base_slug = slugify(update_data["title"])
+        new_slug = base_slug
+        while db.query(Article).filter(Article.slug == new_slug, Article.id != article_id).first():
+            new_slug = f"{base_slug}-{uuid.uuid4().hex[:8]}"
         update_data["slug"] = new_slug
 
     tag_ids = update_data.pop("tag_ids", None)
