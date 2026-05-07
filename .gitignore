@@ -20,8 +20,13 @@ build/
 *.sqlite3
 
 # Environment
+.env
 .env.local
+.env.development
 .env.production
+
+# Cookies/temp
+cookies.txt
 
 # IDE
 .idea/

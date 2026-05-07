@@ -6,5 +6,7 @@ export const authApi = {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     }),
 
+  logout: () => api.post('/auth/logout'),
+
   me: () => api.get('/auth/me'),
 };

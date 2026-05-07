@@ -12,14 +12,18 @@ router = APIRouter()
 @router.get("", response_model=list[TagResponse])
 def list_tags(db: Session = Depends(get_db)):
     tags = db.query(Tag).all()
-    result = []
-    for tag in tags:
-        count = db.query(func.count(Article.id)).join(article_tags).filter(
-            article_tags.c.tag_id == tag.id, Article.status == "published"
-        ).scalar()
-        tag.article_count = count
-        result.append(tag)
-    return result
+    if tags:
+        tag_ids = [t.id for t in tags]
+        counts = dict(
+            db.query(article_tags.c.tag_id, func.count(Article.id))
+            .join(Article, Article.id == article_tags.c.article_id)
+            .filter(Article.status == "published", article_tags.c.tag_id.in_(tag_ids))
+            .group_by(article_tags.c.tag_id)
+            .all()
+        )
+        for tag in tags:
+            tag.article_count = counts.get(tag.id, 0)
+    return tags
 
 
 @router.get("/{slug}", response_model=TagResponse)

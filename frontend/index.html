@@ -12,6 +12,18 @@
     <meta property="og:description" content="分享技术、思考与生活的个人博客" />
     <meta name="theme-color" content="#2563eb" />
     <title>码境 CodeRealm</title>
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+          } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

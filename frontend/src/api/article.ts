@@ -8,6 +8,9 @@ export const articleApi = {
   getBySlug: (slug: string) =>
     api.get<Article>(`/articles/${slug}`),
 
+  getById: (id: number) =>
+    api.get<Article>(`/articles/admin/${id}`),
+
   create: (data: Partial<Article>) =>
     api.post<Article>('/articles', data),
 

@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -9,12 +9,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=Fals
 
 
 def get_current_user(
+    request: Request,
     token: str | None = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User | None:
-    if not token:
+    # Prefer httpOnly cookie, fallback to Authorization header
+    access_token = request.cookies.get("access_token") or token
+    if not access_token:
         return None
-    payload = decode_access_token(token)
+    payload = decode_access_token(access_token)
     if not payload:
         return None
     username: str | None = payload.get("sub")

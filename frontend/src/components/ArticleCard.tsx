@@ -41,6 +41,7 @@ function ArticleCard({ article }: ArticleCardProps) {
             <img
               src={article.cover_image}
               alt={article.title}
+              loading="lazy"
               style={{
                 width: '100%',
                 height: '220px',

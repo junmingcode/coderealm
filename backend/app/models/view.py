@@ -8,9 +8,9 @@ class View(Base):
     __tablename__ = "views"
 
     id = Column(Integer, primary_key=True, index=True)
-    article_id = Column(Integer, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False)
+    article_id = Column(Integer, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True)
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(String(255), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     article = relationship("Article", back_populates="views")

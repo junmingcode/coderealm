@@ -167,6 +167,7 @@ function ArticleDetail() {
           <img
             src={article.cover_image}
             alt={article.title}
+            loading="lazy"
             style={{ width: '100%', maxHeight: '420px', objectFit: 'cover' }}
           />
         </div>

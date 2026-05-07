@@ -2,8 +2,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
 import 'highlight.js/styles/github-dark.css';
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { visit } from 'unist-util-visit';
 
 interface MarkdownRenderProps {
@@ -21,7 +22,7 @@ function rehypeSanitizeColors() {
           .split(';')
           .filter((s: string) => {
             const prop = s.split(':')[0].trim().toLowerCase();
-            return prop !== 'color' && prop !== 'background-color';
+            return prop !== 'color' && prop !== 'background-color' && prop !== 'background';
           })
           .join(';');
         if (cleaned.trim()) {
@@ -32,6 +33,7 @@ function rehypeSanitizeColors() {
       } else if (typeof style === 'object' && style !== null) {
         delete style.color;
         delete style.backgroundColor;
+        delete style.background;
         if (Object.keys(style).length === 0) {
           delete node.properties.style;
         }
@@ -68,16 +70,23 @@ function extractHeadingsFromContent(content: string): string[] {
 }
 
 function MarkdownRender({ content }: MarkdownRenderProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const headingIds = useMemo(() => extractHeadingsFromContent(content), [content]);
   const isHtml = useMemo(() => isHtmlContent(content), [content]);
 
-  let headingIndex = 0;
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const headings = containerRef.current.querySelectorAll('h1, h2, h3');
+    headings.forEach((h, i) => {
+      if (i < headingIds.length) h.id = headingIds[i];
+    });
+  }, [content, headingIds]);
 
   return (
-    <div className="markdown-body">
+    <div className="markdown-body" ref={containerRef}>
       <ReactMarkdown
         remarkPlugins={isHtml ? [] : [remarkGfm]}
-        rehypePlugins={[rehypeRaw, rehypeSanitizeColors, rehypeHighlight]}
+        rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeSanitizeColors, rehypeHighlight]}
         components={{
           img: ({ src, alt }) => (
             <img
@@ -87,30 +96,6 @@ function MarkdownRender({ content }: MarkdownRenderProps) {
               loading="lazy"
             />
           ),
-          h1: ({ children }) => {
-            const id = headingIds[headingIndex++];
-            return (
-              <h1 id={id}>
-                {children}
-              </h1>
-            );
-          },
-          h2: ({ children }) => {
-            const id = headingIds[headingIndex++];
-            return (
-              <h2 id={id}>
-                {children}
-              </h2>
-            );
-          },
-          h3: ({ children }) => {
-            const id = headingIds[headingIndex++];
-            return (
-              <h3 id={id}>
-                {children}
-              </h3>
-            );
-          },
         }}
       >
         {content}

@@ -12,12 +12,16 @@ router = APIRouter()
 @router.get("", response_model=list[CategoryResponse])
 def list_categories(db: Session = Depends(get_db)):
     categories = db.query(Category).all()
-    result = []
-    for cat in categories:
-        count = db.query(func.count(Article.id)).filter(Article.category_id == cat.id, Article.status == "published").scalar()
-        cat.article_count = count
-        result.append(cat)
-    return result
+    if categories:
+        counts = dict(
+            db.query(Article.category_id, func.count(Article.id))
+            .filter(Article.status == "published", Article.category_id.in_([c.id for c in categories]))
+            .group_by(Article.category_id)
+            .all()
+        )
+        for cat in categories:
+            cat.article_count = counts.get(cat.id, 0)
+    return categories
 
 
 @router.get("/{slug}", response_model=CategoryResponse)

@@ -7,22 +7,22 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true,
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/admin/login';
+      const requestUrl = error.config?.url || '';
+      // 排除 auth 端点（登录、检查登录状态等），这些端点返回 401 是正常行为
+      if (requestUrl.includes('/auth/')) {
+        return Promise.reject(error);
+      }
+      // 只在 admin 页面才跳转登录页
+      if (window.location.pathname.startsWith('/admin')) {
+        window.location.href = '/admin/login';
+      }
     }
     return Promise.reject(error);
   }

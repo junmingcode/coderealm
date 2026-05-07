@@ -1,4 +1,6 @@
-from sqlalchemy.orm import Session
+import uuid
+
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 from app.models import Article, Category, Tag, Comment, Like
 from app.schemas import ArticleCreate, ArticleUpdate
@@ -6,7 +8,12 @@ from slugify import slugify
 
 
 def get_article_by_slug(db: Session, slug: str) -> Article | None:
-    return db.query(Article).filter(Article.slug == slug).first()
+    return (
+        db.query(Article)
+        .options(joinedload(Article.category), selectinload(Article.tags))
+        .filter(Article.slug == slug)
+        .first()
+    )
 
 
 def get_articles(
@@ -17,7 +24,7 @@ def get_articles(
     tag_slug: str | None = None,
     status: str | None = "published",
 ):
-    query = db.query(Article)
+    query = db.query(Article).options(joinedload(Article.category), selectinload(Article.tags))
     if status:
         query = query.filter(Article.status == status)
     if category_slug:
@@ -36,10 +43,10 @@ def get_articles(
 
 
 def create_article(db: Session, article: ArticleCreate, user_id: int) -> Article:
-    slug = slugify(article.title)
-    existing = db.query(Article).filter(Article.slug == slug).first()
-    if existing:
-        slug = f"{slug}-{db.query(func.count(Article.id)).scalar() + 1}"
+    base_slug = slugify(article.title)
+    slug = base_slug
+    while db.query(Article).filter(Article.slug == slug).first():
+        slug = f"{base_slug}-{uuid.uuid4().hex[:8]}"
 
     db_article = Article(
         title=article.title,

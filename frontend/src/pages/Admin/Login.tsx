@@ -16,8 +16,8 @@ function Login() {
     setError('');
     setLoading(true);
     try {
-      const res = await authApi.login(username, password);
-      login(res.data.access_token);
+      await authApi.login(username, password);
+      login();
       navigate('/admin');
     } catch (err: any) {
       setError(err.response?.data?.detail || '登录失败');

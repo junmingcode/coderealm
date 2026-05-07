@@ -1,24 +1,33 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
+import { authApi } from '../../api/auth';
 import ThemeToggle from '../../components/ThemeToggle';
 
 function AdminLayout() {
-  const { isAuthenticated, logout } = useAuthStore();
+  const { isAuthenticated, initialized, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (initialized && !isAuthenticated) {
       navigate('/admin/login');
     }
-  }, [isAuthenticated, navigate]);
+  }, [initialized, isAuthenticated, navigate]);
 
   const navItems = [
     { path: '/admin', label: '仪表盘' },
     { path: '/admin/articles', label: '文章管理' },
   ];
+
+  if (!initialized) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: 'var(--color-bg)' }}>
+        <div style={{ color: 'var(--color-text-secondary)' }}>加载中...</div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) return null;
 
@@ -93,7 +102,8 @@ function AdminLayout() {
 
         <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)' }}>
           <button
-            onClick={() => {
+            onClick={async () => {
+              try { await authApi.logout(); } catch (_) { /* ignore */ }
               logout();
               navigate('/admin/login');
             }}

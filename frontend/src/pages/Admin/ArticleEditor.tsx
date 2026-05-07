@@ -41,9 +41,8 @@ function ArticleEditor() {
     if (!isEdit) return;
     const fetchArticle = async () => {
       try {
-        const res = await articleApi.getList({ page: 1, page_size: 1 });
-        const article = res.data.items.find((a) => a.id === parseInt(id!));
-        if (!article) return;
+        const res = await articleApi.getById(parseInt(id!));
+        const article = res.data;
         setTitle(article.title);
         setContent(article.content);
         setSummary(article.summary || '');
