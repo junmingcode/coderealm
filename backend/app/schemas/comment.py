@@ -26,3 +26,14 @@ class CommentResponse(CommentBase):
 
 
 CommentResponse.model_rebuild()
+
+
+class CommentStatusUpdate(BaseModel):
+    status: str
+
+
+class CommentAdminResponse(CommentResponse):
+    article_title: str = ""
+
+    class Config:
+        from_attributes = True

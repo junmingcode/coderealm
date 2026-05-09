@@ -1,19 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { articleApi } from '../../api/article';
+import { categoryApi } from '../../api/category';
 import { SkeletonTable } from '../../components/Skeleton';
-import type { Article, PaginatedResponse } from '../../types';
+import type { Article, Category, PaginatedResponse } from '../../types';
 
 function ArticleList() {
   const [data, setData] = useState<PaginatedResponse<Article> | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    categoryApi.getList().then((res) => setCategories(res.data)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchArticles = async () => {
       setLoading(true);
       try {
-        const res = await articleApi.getList({ page, page_size: 15 });
+        const params: Record<string, unknown> = { page, page_size: 15 };
+        if (searchQuery) params.q = searchQuery;
+        if (statusFilter) params.status = statusFilter;
+        if (categoryFilter) params.category_id = parseInt(categoryFilter);
+        const res = await articleApi.getList(params as any);
         setData(res.data);
       } catch (err) {
         console.error('Failed to fetch articles:', err);
@@ -22,7 +36,15 @@ function ArticleList() {
       }
     };
     fetchArticles();
-  }, [page]);
+  }, [page, searchQuery, statusFilter, categoryFilter]);
+
+  const handleSearchChange = (value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearchQuery(value);
+      setPage(1);
+    }, 300);
+  };
 
   const handleDelete = async (id: number) => {
     if (!confirm('确定要删除这篇文章吗？')) return;
@@ -38,6 +60,13 @@ function ArticleList() {
     }
   };
 
+  const resetFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('');
+    setCategoryFilter('');
+    setPage(1);
+  };
+
   return (
     <div>
       <div
@@ -45,7 +74,7 @@ function ArticleList() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '2rem',
+          marginBottom: '1.5rem',
         }}
       >
         <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text)' }}>
@@ -63,6 +92,73 @@ function ArticleList() {
         >
           + 新建文章
         </Link>
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <input
+          type="text"
+          placeholder="搜索文章标题..."
+          onChange={(e) => handleSearchChange(e.target.value)}
+          style={{
+            padding: '0.5rem 0.75rem',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-bg)',
+            color: 'var(--color-text)',
+            fontSize: '0.875rem',
+            width: '200px',
+          }}
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          style={{
+            padding: '0.5rem 0.75rem',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-bg)',
+            color: 'var(--color-text)',
+            fontSize: '0.875rem',
+          }}
+        >
+          <option value="">全部状态</option>
+          <option value="published">已发布</option>
+          <option value="draft">草稿</option>
+        </select>
+        <select
+          value={categoryFilter}
+          onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+          style={{
+            padding: '0.5rem 0.75rem',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-bg)',
+            color: 'var(--color-text)',
+            fontSize: '0.875rem',
+          }}
+        >
+          <option value="">全部分类</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
+        {(searchQuery || statusFilter || categoryFilter) && (
+          <button
+            onClick={resetFilters}
+            style={{
+              padding: '0.5rem 0.75rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-border)',
+              backgroundColor: 'var(--color-surface)',
+              color: 'var(--color-text-secondary)',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+            }}
+          >
+            重置筛选
+          </button>
+        )}
       </div>
 
       {loading ? (

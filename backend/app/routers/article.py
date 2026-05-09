@@ -1,5 +1,3 @@
-import re
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -19,17 +17,11 @@ from app.services.article_service import (
     delete_article,
     increment_view_count,
 )
+from app.utils.reading import calculate_reading_time
 
 router = APIRouter()
 
 
-def calculate_reading_time(content: str) -> int:
-    if not content:
-        return 1
-    chinese_chars = len(re.findall(r'[一-鿿]', content))
-    english_words = len(re.findall(r'[a-zA-Z]+', content))
-    total = chinese_chars + english_words
-    return max(1, round(total / 400))
 
 
 def _enrich_articles(articles: List[Article], db: Session):
@@ -70,9 +62,18 @@ def list_articles(
     page_size: int = Query(10, ge=1, le=100),
     category: str | None = Query(None),
     tag: str | None = Query(None),
+    q: str | None = Query(None),
+    status: str | None = Query(None),
+    category_id: int | None = Query(None),
+    sort_by: str = Query("published_at", pattern="^(published_at|created_at|view_count)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
 ):
-    articles, total = get_articles(db, page=page, page_size=page_size, category_slug=category, tag_slug=tag)
+    articles, total = get_articles(
+        db, page=page, page_size=page_size, category_slug=category, tag_slug=tag,
+        status=status or "published", q=q, category_id=category_id,
+        sort_by=sort_by, sort_order=sort_order,
+    )
     articles = _enrich_articles(articles, db)
     total_pages = (total + page_size - 1) // page_size
     return {
@@ -126,18 +127,47 @@ def search_articles(
     page_size: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    base_query = db.query(Article).filter(
-        Article.status == "published",
-        (Article.title.contains(q)) | (Article.content.contains(q)) | (Article.summary.contains(q))
-    )
-    total = base_query.count()
-    articles = (
-        base_query.options(joinedload(Article.category), selectinload(Article.tags))
-        .order_by(Article.published_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
-    )
+    from app.database import engine
+
+    if engine.dialect.name == "mysql":
+        from sqlalchemy import text
+        count_sql = text(
+            "SELECT COUNT(*) FROM articles WHERE status='published' AND MATCH(title, content, summary) AGAINST(:q IN NATURAL LANGUAGE MODE)"
+        )
+        total = db.execute(count_sql, {"q": q}).scalar() or 0
+
+        offset = (page - 1) * page_size
+        search_sql = text(
+            "SELECT id FROM articles WHERE status='published' AND MATCH(title, content, summary) AGAINST(:q IN NATURAL LANGUAGE MODE) ORDER BY published_at DESC LIMIT :limit OFFSET :offset"
+        )
+        rows = db.execute(search_sql, {"q": q, "limit": page_size, "offset": offset}).fetchall()
+        article_ids = [r[0] for r in rows]
+
+        if article_ids:
+            articles = (
+                db.query(Article)
+                .options(joinedload(Article.category), joinedload(Article.series), selectinload(Article.tags))
+                .filter(Article.id.in_(article_ids))
+                .all()
+            )
+            id_order = {id_: i for i, id_ in enumerate(article_ids)}
+            articles.sort(key=lambda a: id_order.get(a.id, 0))
+        else:
+            articles = []
+    else:
+        base_query = db.query(Article).filter(
+            Article.status == "published",
+            (Article.title.contains(q)) | (Article.content.contains(q)) | (Article.summary.contains(q))
+        )
+        total = base_query.count()
+        articles = (
+            base_query.options(joinedload(Article.category), joinedload(Article.series), selectinload(Article.tags))
+            .order_by(Article.published_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+
     articles = _enrich_articles(articles, db)
     total_pages = (total + page_size - 1) // page_size
     return {
@@ -178,7 +208,7 @@ def get_article_admin(
 ):
     article = (
         db.query(Article)
-        .options(joinedload(Article.category), selectinload(Article.tags))
+        .options(joinedload(Article.category), joinedload(Article.series), selectinload(Article.tags))
         .filter(Article.id == article_id)
         .first()
     )
@@ -195,12 +225,16 @@ def get_article(slug: str, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Article not found")
     if article.status != "published":
         raise HTTPException(status_code=404, detail="Article not found")
-    increment_view_count(db, article.id)
+    ip = request.headers.get("X-Real-IP") or request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or (request.client.host if request.client else None)
+    ua = request.headers.get("User-Agent")
+    increment_view_count(db, article.id, ip_address=ip, user_agent=ua)
     return _enrich_article(article, db)
 
 
 @router.post("", response_model=ArticleResponse)
+@limiter.limit("30/minute")
 def create_new_article(
+    request: Request,
     article: ArticleCreate,
     db: Session = Depends(get_db),
     admin=Depends(get_current_admin),
@@ -211,7 +245,9 @@ def create_new_article(
 
 
 @router.put("/{article_id}", response_model=ArticleResponse)
+@limiter.limit("30/minute")
 def update_existing_article(
+    request: Request,
     article_id: int,
     article: ArticleUpdate,
     db: Session = Depends(get_db),
@@ -225,7 +261,9 @@ def update_existing_article(
 
 
 @router.delete("/{article_id}")
+@limiter.limit("30/minute")
 def delete_existing_article(
+    request: Request,
     article_id: int,
     db: Session = Depends(get_db),
     admin=Depends(get_current_admin),

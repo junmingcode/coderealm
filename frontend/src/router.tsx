@@ -10,11 +10,23 @@ const CategoryPage = lazy(() => import('./pages/CategoryPage'));
 const TagPage = lazy(() => import('./pages/TagPage'));
 const About = lazy(() => import('./pages/About'));
 const SearchResult = lazy(() => import('./pages/SearchResult'));
+const CategoriesIndex = lazy(() => import('./pages/CategoriesIndex'));
+const TagsIndex = lazy(() => import('./pages/TagsIndex'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 const Login = lazy(() => import('./pages/Admin/Login'));
 const AdminLayout = lazy(() => import('./pages/Admin/AdminLayout'));
 const Dashboard = lazy(() => import('./pages/Admin/Dashboard'));
 const ArticleList = lazy(() => import('./pages/Admin/ArticleList'));
 const ArticleEditor = lazy(() => import('./pages/Admin/ArticleEditor'));
+const CategoryManage = lazy(() => import('./pages/Admin/CategoryManage'));
+const TagManage = lazy(() => import('./pages/Admin/TagManage'));
+const CommentManage = lazy(() => import('./pages/Admin/CommentManage'));
+const SiteConfigManage = lazy(() => import('./pages/Admin/SiteConfigManage'));
+const ArticlePreview = lazy(() => import('./pages/Admin/ArticlePreview'));
+const UserManage = lazy(() => import('./pages/Admin/UserManage'));
+const SeriesManage = lazy(() => import('./pages/Admin/SeriesManage'));
+const SeriesIndex = lazy(() => import('./pages/SeriesIndex'));
+const SeriesPage = lazy(() => import('./pages/SeriesPage'));
 
 function LazyWrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -77,6 +89,46 @@ const router = createBrowserRouter([
           </LazyWrapper>
         ),
       },
+      {
+        path: 'categories',
+        element: (
+          <LazyWrapper>
+            <CategoriesIndex />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: 'tags',
+        element: (
+          <LazyWrapper>
+            <TagsIndex />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: 'series',
+        element: (
+          <LazyWrapper>
+            <SeriesIndex />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: 'series/:slug',
+        element: (
+          <LazyWrapper>
+            <SeriesPage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: '*',
+        element: (
+          <LazyWrapper>
+            <NotFound />
+          </LazyWrapper>
+        ),
+      },
     ],
   },
   {
@@ -124,6 +176,62 @@ const router = createBrowserRouter([
         element: (
           <LazyWrapper>
             <ArticleEditor />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: 'categories',
+        element: (
+          <LazyWrapper>
+            <CategoryManage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: 'tags',
+        element: (
+          <LazyWrapper>
+            <TagManage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: 'comments',
+        element: (
+          <LazyWrapper>
+            <CommentManage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: 'settings',
+        element: (
+          <LazyWrapper>
+            <SiteConfigManage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: 'users',
+        element: (
+          <LazyWrapper>
+            <UserManage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: 'series',
+        element: (
+          <LazyWrapper>
+            <SeriesManage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: 'articles/:id/preview',
+        element: (
+          <LazyWrapper>
+            <ArticlePreview />
           </LazyWrapper>
         ),
       },

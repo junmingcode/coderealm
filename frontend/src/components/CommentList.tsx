@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../api';
 import type { Comment } from '../types';
 
@@ -15,6 +15,13 @@ function CommentList({ articleId, comments, onCommentAdded }: CommentListProps) 
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    const savedName = localStorage.getItem('commenter_name');
+    const savedEmail = localStorage.getItem('commenter_email');
+    if (savedName) setAuthorName(savedName);
+    if (savedEmail) setAuthorEmail(savedEmail);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authorName.trim() || !authorEmail.trim() || !content.trim()) return;
@@ -27,6 +34,8 @@ function CommentList({ articleId, comments, onCommentAdded }: CommentListProps) 
         content,
         parent_id: replyTo,
       });
+      localStorage.setItem('commenter_name', authorName);
+      localStorage.setItem('commenter_email', authorEmail);
       setContent('');
       setReplyTo(null);
       onCommentAdded();
@@ -143,7 +152,7 @@ function CommentList({ articleId, comments, onCommentAdded }: CommentListProps) 
           />
           <input
             type="email"
-            placeholder="邮箱 *"
+            placeholder="邮箱（不会公开展示）*"
             value={authorEmail}
             onChange={(e) => setAuthorEmail(e.target.value)}
             required

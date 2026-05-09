@@ -31,6 +31,15 @@ function Footer() {
           <Link to="/about" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
             关于
           </Link>
+          <Link to="/categories" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+            分类
+          </Link>
+          <Link to="/tags" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+            标签
+          </Link>
+          <Link to="/series" style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+            系列
+          </Link>
           <a
             href="/api/rss"
             target="_blank"

@@ -5,6 +5,8 @@ from app.models.article import Article, article_tags
 from app.models.comment import Comment
 from app.models.like import Like
 from app.models.view import View
+from app.models.site_config import SiteConfig
+from app.models.series import Series
 
 __all__ = [
     "User",
@@ -15,4 +17,6 @@ __all__ = [
     "Comment",
     "Like",
     "View",
+    "SiteConfig",
+    "Series",
 ]

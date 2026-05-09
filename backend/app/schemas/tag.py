@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 
 class TagBase(BaseModel):
@@ -9,6 +10,11 @@ class TagBase(BaseModel):
 
 class TagCreate(TagBase):
     pass
+
+
+class TagUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
 
 
 class TagResponse(TagBase):

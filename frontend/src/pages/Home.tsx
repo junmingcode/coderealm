@@ -14,13 +14,14 @@ function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState('published_at');
 
   useEffect(() => {
     const fetchArticles = async () => {
       setLoading(true);
       try {
         const [articlesRes, categoriesRes] = await Promise.all([
-          articleApi.getList({ page, page_size: 10 }),
+          articleApi.getList({ page, page_size: 10, sort_by: sortBy, sort_order: 'desc' }),
           categoryApi.getList(),
         ]);
         setData(articlesRes.data);
@@ -32,7 +33,7 @@ function Home() {
       }
     };
     fetchArticles();
-  }, [page]);
+  }, [page, sortBy]);
 
   if (loading) {
     return (
@@ -153,15 +154,33 @@ function Home() {
             marginBottom: '1.5rem',
           }}
         >
-          <h2
-            style={{
-              fontSize: '1.25rem',
-              fontWeight: 600,
-              color: 'var(--color-text)',
-            }}
-          >
-            最新文章
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <h2
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                color: 'var(--color-text)',
+              }}
+            >
+              最新文章
+            </h2>
+            <select
+              value={sortBy}
+              onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
+              style={{
+                padding: '0.375rem 0.625rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-border)',
+                backgroundColor: 'var(--color-surface)',
+                color: 'var(--color-text-secondary)',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="published_at">最新发布</option>
+              <option value="view_count">最多浏览</option>
+            </select>
+          </div>
           <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
             共 {data?.total || 0} 篇
           </span>

@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 import bleach
 
 from app.database import get_db
 from app.models import Comment, Article
-from app.schemas import CommentCreate, CommentResponse
+from app.schemas import CommentCreate, CommentResponse, CommentStatusUpdate, CommentAdminResponse, PaginatedResponse
 from app.limiter import limiter
+from app.dependencies import get_current_admin
 
 router = APIRouter()
 
@@ -79,3 +81,78 @@ def create_comment(
     db.refresh(db_comment)
     db_comment.replies = []
     return db_comment
+
+
+@router.get("/admin/comments")
+def list_admin_comments(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    status: str = Query("all"),
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin),
+):
+    query = db.query(Comment).join(Article, Article.id == Comment.article_id)
+    if status != "all":
+        query = query.filter(Comment.status == status)
+    total = query.count()
+    comments = (
+        query.order_by(Comment.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    items = []
+    for c in comments:
+        article = db.query(Article).filter(Article.id == c.article_id).first()
+        items.append({
+            "id": c.id,
+            "article_id": c.article_id,
+            "article_title": article.title if article else "",
+            "author_name": c.author_name,
+            "author_email": c.author_email,
+            "content": c.content,
+            "status": c.status,
+            "parent_id": c.parent_id,
+            "created_at": c.created_at.isoformat(),
+            "replies": [],
+        })
+    total_pages = (total + page_size - 1) // page_size
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
+
+
+@router.put("/admin/comments/{comment_id}/status")
+def update_comment_status(
+    comment_id: int,
+    data: CommentStatusUpdate,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin),
+):
+    comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if data.status not in ("approved", "pending", "spam"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    comment.status = data.status
+    db.commit()
+    db.refresh(comment)
+    return {"message": "状态更新成功", "id": comment.id, "status": comment.status}
+
+
+@router.delete("/admin/comments/{comment_id}")
+def delete_comment(
+    comment_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin),
+):
+    comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    db.delete(comment)
+    db.commit()
+    return {"message": "删除成功"}

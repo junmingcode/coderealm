@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { articleApi } from '../api/article';
 import { api } from '../api';
+import { siteConfigApi } from '../api/siteConfig';
 import MarkdownRender from '../components/MarkdownRender';
 import CommentList from '../components/CommentList';
 import TableOfContents from '../components/TableOfContents';
+import ShareButtons from '../components/ShareButtons';
 import { SkeletonArticle } from '../components/Skeleton';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
 import { useMetaDescription } from '../utils/useMetaDescription';
@@ -17,6 +19,9 @@ function ArticleDetail() {
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [neighbors, setNeighbors] = useState<{ previous: { slug: string; title: string } | null; next: { slug: string; title: string } | null }>({ previous: null, next: null });
+  const [authorName, setAuthorName] = useState('JM');
+  const [authorBio, setAuthorBio] = useState('热爱技术的开发者，专注于 Web 开发领域。在这个博客中分享关于前端、后端、数据库以及各种技术工具的文章。');
+  const [authorAvatar, setAuthorAvatar] = useState('');
 
   useDocumentTitle(article?.title || '文章详情');
   useMetaDescription(
@@ -24,26 +29,41 @@ function ArticleDetail() {
   );
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchArticle = async () => {
       if (!slug) return;
       setLoading(true);
       try {
         const [articleRes, neighborsRes] = await Promise.all([
-          articleApi.getBySlug(slug),
-          api.get(`/articles/${slug}/neighbors`),
+          articleApi.getBySlug(slug, controller.signal),
+          articleApi.getNeighbors(slug, controller.signal),
         ]);
+        if (controller.signal.aborted) return;
         setArticle(articleRes.data);
         setNeighbors(neighborsRes.data);
-        fetchComments(articleRes.data.id);
+        const commentsRes = await api.get(`/articles/${articleRes.data.id}/comments`, { signal: controller.signal });
+        if (!controller.signal.aborted) setComments(commentsRes.data);
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      } catch (err) {
-        console.error('Failed to fetch article:', err);
+      } catch (err: any) {
+        if (err?.name !== 'CanceledError' && err?.code !== 'ERR_CANCELED') {
+          console.error('Failed to fetch article:', err);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
     fetchArticle();
+    return () => controller.abort();
   }, [slug]);
+
+  useEffect(() => {
+    siteConfigApi.getAll().then((res) => {
+      const cfg = res.data;
+      if (cfg.author_name) setAuthorName(cfg.author_name);
+      if (cfg.author_bio) setAuthorBio(cfg.author_bio);
+      if (cfg.author_avatar) setAuthorAvatar(cfg.author_avatar);
+    }).catch(() => {});
+  }, []);
 
   const fetchComments = async (articleId: number) => {
     try {
@@ -65,15 +85,6 @@ function ArticleDetail() {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      alert('链接已复制到剪贴板');
-    } catch {
-      alert('复制失败');
-    }
-  };
-
   if (loading) {
     return <SkeletonArticle />;
   }
@@ -91,23 +102,47 @@ function ArticleDetail() {
     <div style={{ padding: '2rem 0' }}>
       {/* Article Header */}
       <div style={{ maxWidth: 'var(--content-max-width)', margin: '0 auto', marginBottom: '2.5rem' }}>
-        {article.category && (
-          <Link
-            to={`/category/${article.category.slug}`}
-            style={{
-              display: 'inline-block',
-              fontSize: '0.8125rem',
-              fontWeight: 500,
-              color: 'var(--color-primary)',
-              marginBottom: '1rem',
-              padding: '0.25rem 0.75rem',
-              backgroundColor: 'var(--color-primary-subtle)',
-              borderRadius: 'var(--radius-sm)',
-            }}
-          >
-            {article.category.name}
-          </Link>
-        )}
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          {article.category && (
+            <Link
+              to={`/category/${article.category.slug}`}
+              style={{
+                display: 'inline-block',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: 'var(--color-primary)',
+                padding: '0.25rem 0.75rem',
+                backgroundColor: 'var(--color-primary-subtle)',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              {article.category.name}
+            </Link>
+          )}
+          {article.series && (
+            <Link
+              to={`/series/${article.series.slug}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                color: 'var(--color-accent)',
+                padding: '0.25rem 0.75rem',
+                backgroundColor: 'rgba(var(--color-accent-rgb, 16, 185, 129), 0.1)',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              </svg>
+              {article.series.name}
+              {article.series_order != null && ` #${article.series_order}`}
+            </Link>
+          )}
+        </div>
 
         <h1
           style={{
@@ -257,36 +292,7 @@ function ArticleDetail() {
               {liked ? '已点赞' : '点赞'} {article.like_count}
             </button>
 
-            <button
-              onClick={handleShare}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--color-surface-hover)',
-                color: 'var(--color-text-secondary)',
-                border: '1px solid var(--color-border)',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                transition: 'all var(--transition-fast)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--color-text)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--color-text-secondary)';
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                <polyline points="16 6 12 2 8 6" />
-                <line x1="12" y1="2" x2="12" y2="15" />
-              </svg>
-              分享
-            </button>
+            <ShareButtons title={article.title} />
           </div>
 
           {/* Author Card */}
@@ -302,27 +308,31 @@ function ArticleDetail() {
               marginBottom: '2.5rem',
             }}
           >
-            <div
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--color-primary-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--color-primary)',
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
-            >
-              JM
-            </div>
+            {authorAvatar ? (
+              <img src={authorAvatar} alt={authorName} style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+            ) : (
+              <div
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--color-primary-subtle)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--color-primary)',
+                  fontSize: '1.5rem',
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                {authorName.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div>
-              <div style={{ fontWeight: 600, color: 'var(--color-text)', marginBottom: '0.25rem' }}>JM</div>
+              <div style={{ fontWeight: 600, color: 'var(--color-text)', marginBottom: '0.25rem' }}>{authorName}</div>
               <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                热爱技术的开发者，专注于 Web 开发领域。在这个博客中分享关于前端、后端、数据库以及各种技术工具的文章。
+                {authorBio}
               </p>
             </div>
           </div>

@@ -1,18 +1,29 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from app.schemas.category import CategoryResponse
 from app.schemas.tag import TagResponse
 
 
+class SeriesInfo(BaseModel):
+    id: int
+    name: str
+    slug: str
+
+    class Config:
+        from_attributes = True
+
+
 class ArticleBase(BaseModel):
-    title: str
+    title: str = Field(..., max_length=200)
     content: str
-    summary: Optional[str] = None
-    cover_image: Optional[str] = None
-    status: str = "draft"
+    summary: Optional[str] = Field(None, max_length=500)
+    cover_image: Optional[str] = Field(None, max_length=255)
+    status: Literal["draft", "published"] = "draft"
     category_id: Optional[int] = None
     tag_ids: List[int] = []
+    series_id: Optional[int] = None
+    series_order: Optional[int] = None
 
 
 class ArticleCreate(ArticleBase):
@@ -20,8 +31,8 @@ class ArticleCreate(ArticleBase):
 
 
 class ArticleUpdate(ArticleBase):
-    title: Optional[str] = None
-    content: Optional[str] = None
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    content: Optional[str] = Field(None, min_length=1)
 
 
 class ArticleResponse(BaseModel):
@@ -41,6 +52,8 @@ class ArticleResponse(BaseModel):
     published_at: Optional[datetime]
     category: Optional[CategoryResponse]
     tags: List[TagResponse]
+    series: Optional[SeriesInfo] = None
+    series_order: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -61,6 +74,8 @@ class ArticleListResponse(BaseModel):
     published_at: Optional[datetime]
     category: Optional[CategoryResponse]
     tags: List[TagResponse]
+    series: Optional[SeriesInfo] = None
+    series_order: Optional[int] = None
 
     class Config:
         from_attributes = True

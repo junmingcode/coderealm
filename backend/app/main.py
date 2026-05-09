@@ -10,9 +10,9 @@ import os
 
 from app.config import get_settings
 from app.database import engine, Base, SessionLocal
-from app.routers import auth, article, category, tag, comment, like, upload, rss, stats
+from app.routers import auth, article, category, tag, comment, like, upload, rss, stats, site_config, series
 from app.utils.security import get_password_hash
-from app.models import User
+from app.models import User, SiteConfig
 from app.limiter import limiter
 
 settings = get_settings()
@@ -35,10 +35,29 @@ def create_admin_user():
         db.close()
 
 
+def seed_site_config():
+    db = SessionLocal()
+    try:
+        defaults = {
+            "author_name": "JM",
+            "author_bio": "热爱技术的开发者，专注于 Web 开发领域",
+            "author_avatar": "",
+            "about_page": "",
+        }
+        for key, value in defaults.items():
+            existing = db.query(SiteConfig).filter(SiteConfig.key == key).first()
+            if not existing:
+                db.add(SiteConfig(key=key, value=value))
+        db.commit()
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await asyncio.to_thread(Base.metadata.create_all, bind=engine)
     await asyncio.to_thread(create_admin_user)
+    await asyncio.to_thread(seed_site_config)
     yield
 
 
@@ -79,6 +98,8 @@ app.include_router(like.router, prefix="/api", tags=["likes"])
 app.include_router(upload.router, prefix="/api/upload", tags=["upload"])
 app.include_router(rss.router, prefix="/api/rss", tags=["rss"])
 app.include_router(stats.router, prefix="/api/stats", tags=["stats"])
+app.include_router(site_config.router, prefix="/api/site-config", tags=["site-config"])
+app.include_router(series.router, prefix="/api/series", tags=["series"])
 
 
 @app.get("/api/health")

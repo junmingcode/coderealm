@@ -11,6 +11,7 @@ class View(Base):
     article_id = Column(Integer, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True)
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(String(255), nullable=True)
+    visitor_hash = Column(String(64), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     article = relationship("Article", back_populates="views")

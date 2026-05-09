@@ -2,11 +2,23 @@ import { api } from './index';
 import type { Article, PaginatedResponse } from '../types';
 
 export const articleApi = {
-  getList: (params?: { page?: number; page_size?: number; category?: string; tag?: string }) =>
-    api.get<PaginatedResponse<Article>>('/articles', { params }),
+  getList: (params?: {
+    page?: number;
+    page_size?: number;
+    category?: string;
+    tag?: string;
+    q?: string;
+    status?: string;
+    category_id?: number;
+    sort_by?: string;
+    sort_order?: string;
+  }) => api.get<PaginatedResponse<Article>>('/articles', { params }),
 
-  getBySlug: (slug: string) =>
-    api.get<Article>(`/articles/${slug}`),
+  getBySlug: (slug: string, signal?: AbortSignal) =>
+    api.get<Article>(`/articles/${slug}`, { signal }),
+
+  getNeighbors: (slug: string, signal?: AbortSignal) =>
+    api.get<{ previous: { slug: string; title: string } | null; next: { slug: string; title: string } | null }>(`/articles/${slug}/neighbors`, { signal }),
 
   getById: (id: number) =>
     api.get<Article>(`/articles/admin/${id}`),

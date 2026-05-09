@@ -35,9 +35,12 @@ class Article(Base):
 
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    series_id = Column(Integer, ForeignKey("series.id"), nullable=True, index=True)
+    series_order = Column(Integer, nullable=True)
 
     category = relationship("Category", back_populates="articles")
     user = relationship("User", backref="articles")
+    series = relationship("Series", back_populates="articles")
     tags = relationship("Tag", secondary=article_tags, back_populates="articles")
     comments = relationship("Comment", back_populates="article", cascade="all, delete-orphan")
     likes = relationship("Like", back_populates="article", cascade="all, delete-orphan")

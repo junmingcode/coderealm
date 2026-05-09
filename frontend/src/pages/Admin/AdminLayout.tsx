@@ -19,6 +19,12 @@ function AdminLayout() {
   const navItems = [
     { path: '/admin', label: '仪表盘' },
     { path: '/admin/articles', label: '文章管理' },
+    { path: '/admin/categories', label: '分类管理' },
+    { path: '/admin/tags', label: '标签管理' },
+    { path: '/admin/comments', label: '评论管理' },
+    { path: '/admin/series', label: '系列管理' },
+    { path: '/admin/users', label: '用户管理' },
+    { path: '/admin/settings', label: '站点设置' },
   ];
 
   if (!initialized) {
@@ -81,23 +87,28 @@ function AdminLayout() {
         </div>
 
         <nav style={{ padding: '1rem 0', flex: 1 }}>
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={() => setSidebarOpen(false)}
-              style={{
-                display: 'block',
-                padding: '0.875rem 1.5rem',
-                color: location.pathname === item.path ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                backgroundColor: location.pathname === item.path ? 'var(--color-bg)' : 'transparent',
-                fontWeight: location.pathname === item.path ? 600 : 400,
-                borderLeft: location.pathname === item.path ? '3px solid var(--color-primary)' : '3px solid transparent',
-              }}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive = item.path === '/admin'
+              ? location.pathname === '/admin'
+              : location.pathname.startsWith(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  display: 'block',
+                  padding: '0.875rem 1.5rem',
+                  color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  backgroundColor: isActive ? 'var(--color-bg)' : 'transparent',
+                  fontWeight: isActive ? 600 : 400,
+                  borderLeft: isActive ? '3px solid var(--color-primary)' : '3px solid transparent',
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)' }}>
@@ -144,6 +155,7 @@ function AdminLayout() {
         >
           <button
             onClick={() => setSidebarOpen(true)}
+            aria-label="打开导航菜单"
             style={{
               padding: '0.5rem',
               borderRadius: 'var(--radius-md)',

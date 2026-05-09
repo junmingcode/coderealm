@@ -1,14 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import MDEditor from '@uiw/react-md-editor';
 import { articleApi } from '../../api/article';
+import { uploadApi } from '../../api/upload';
+import { seriesApi, type SeriesItem } from '../../api/series';
 import { api } from '../../api';
+import { useThemeStore } from '../../stores/themeStore';
 import type { Category, Tag } from '../../types';
 
 function ArticleEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = !!id;
+  const { isDark } = useThemeStore();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -19,17 +23,36 @@ function ArticleEditor() {
   const [selectedTags, setSelectedTags] = useState<number[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [seriesList, setSeriesList] = useState<SeriesItem[]>([]);
+  const [seriesId, setSeriesId] = useState<number | ''>('');
+  const [seriesOrder, setSeriesOrder] = useState<number | ''>('');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Warn on browser tab close when dirty
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
+
+  // Mark dirty on any form change
+  const markDirty = useCallback(() => setDirty(true), []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, tagRes] = await Promise.all([
+        const [catRes, tagRes, seriesRes] = await Promise.all([
           api.get('/categories'),
           api.get('/tags'),
+          seriesApi.getList(),
         ]);
         setCategories(catRes.data);
         setTags(tagRes.data);
+        setSeriesList(seriesRes.data);
       } catch (err) {
         console.error('Failed to fetch categories/tags:', err);
       }
@@ -41,7 +64,7 @@ function ArticleEditor() {
     if (!isEdit) return;
     const fetchArticle = async () => {
       try {
-        const res = await articleApi.getById(parseInt(id!));
+        const res = await articleApi.getById(parseInt(id!, 10));
         const article = res.data;
         setTitle(article.title);
         setContent(article.content);
@@ -50,12 +73,77 @@ function ArticleEditor() {
         setStatus(article.status as 'draft' | 'published');
         setCategoryId(article.category?.id || '');
         setSelectedTags(article.tags.map((t) => t.id));
+        setSeriesId(article.series?.id || '');
+        setSeriesOrder(article.series_order ?? '');
       } catch (err) {
         console.error('Failed to fetch article:', err);
       }
     };
     fetchArticle();
   }, [isEdit, id]);
+
+  const handleImageUpload = useCallback(async (file: File) => {
+    setUploading(true);
+    try {
+      const res = await uploadApi.image(file);
+      const url = res.data.url;
+      const markdown = `![${file.name}](${url})`;
+      setContent((prev) => prev + '\n' + markdown + '\n');
+    } catch (err) {
+      alert('图片上传失败');
+    } finally {
+      setUploading(false);
+    }
+  }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImageUpload(file);
+      e.target.value = '';
+    }
+  };
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) handleImageUpload(file);
+        break;
+      }
+    }
+  }, [handleImageUpload]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    const files = e.dataTransfer?.files;
+    if (!files) return;
+    for (const file of files) {
+      if (file.type.startsWith('image/')) {
+        e.preventDefault();
+        handleImageUpload(file);
+        break;
+      }
+    }
+  }, [handleImageUpload]);
+
+  const imageUploadCommand = {
+    name: 'image-upload',
+    keyCommand: 'image-upload',
+    buttonProps: { 'aria-label': '上传图片', title: '上传图片' },
+    icon: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <polyline points="21 15 16 10 5 21" />
+      </svg>
+    ),
+    execute: () => {
+      fileInputRef.current?.click();
+    },
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,11 +161,13 @@ function ArticleEditor() {
       status,
       category_id: categoryId || undefined,
       tag_ids: selectedTags,
+      series_id: seriesId || undefined,
+      series_order: seriesOrder !== '' ? Number(seriesOrder) : undefined,
     };
 
     try {
       if (isEdit) {
-        await articleApi.update(parseInt(id!), data);
+        await articleApi.update(parseInt(id!, 10), data);
       } else {
         await articleApi.create(data);
       }
@@ -95,7 +185,15 @@ function ArticleEditor() {
         {isEdit ? '编辑文章' : '新建文章'}
       </h1>
 
-      <form onSubmit={handleSubmit}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+
+      <form onSubmit={handleSubmit} onInput={markDirty}>
         <div style={{ marginBottom: '1.5rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>标题 *</label>
           <input
@@ -114,6 +212,27 @@ function ArticleEditor() {
             }}
           />
         </div>
+
+        {seriesId && (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>系列排序（数字越小越靠前）</label>
+            <input
+              type="number"
+              value={seriesOrder}
+              onChange={(e) => setSeriesOrder(e.target.value ? parseInt(e.target.value) : '')}
+              placeholder="留空自动排在末尾"
+              style={{
+                width: '200px',
+                padding: '0.75rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-border)',
+                backgroundColor: 'var(--color-bg)',
+                color: 'var(--color-text)',
+                fontSize: '1rem',
+              }}
+            />
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
           <div>
@@ -135,6 +254,30 @@ function ArticleEditor() {
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>所属系列</label>
+            <select
+              value={seriesId}
+              onChange={(e) => setSeriesId(e.target.value ? parseInt(e.target.value) : '')}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-border)',
+                backgroundColor: 'var(--color-bg)',
+                color: 'var(--color-text)',
+                fontSize: '1rem',
+              }}
+            >
+              <option value="">无系列</option>
+              {seriesList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
               ))}
             </select>
@@ -231,16 +374,19 @@ function ArticleEditor() {
           />
         </div>
 
-        <div style={{ marginBottom: '2rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>内容 *</label>
-          <div data-color-mode="light">
+        <div style={{ marginBottom: '2rem' }} onPaste={handlePaste} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+            内容 *{uploading && <span style={{ marginLeft: '0.75rem', color: 'var(--color-primary)', fontSize: '0.875rem' }}>图片上传中...</span>}
+          </label>
+          <div data-color-mode={isDark ? 'dark' : 'light'}>
             <MDEditor
               value={content}
               onChange={(val) => setContent(val || '')}
               height={500}
               textareaProps={{
-                placeholder: '请输入文章内容...',
+                placeholder: '请输入文章内容...支持粘贴/拖拽图片上传',
               }}
+              extraCommands={[imageUploadCommand]}
             />
           </div>
         </div>

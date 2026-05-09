@@ -3,6 +3,8 @@ export interface User {
   username: string;
   email: string;
   is_admin: boolean;
+  avatar?: string;
+  bio?: string;
   created_at: string;
 }
 
@@ -40,6 +42,8 @@ export interface Article {
   published_at?: string;
   category?: Category;
   tags: Tag[];
+  series?: { id: number; name: string; slug: string } | null;
+  series_order?: number | null;
 }
 
 export interface Comment {
